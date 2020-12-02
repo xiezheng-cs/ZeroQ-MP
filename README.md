@@ -37,14 +37,14 @@ bash run.sh
 Below are the results that you should get for 8-bit quantization (**W8A8** refers to the quantizing model to 8-bit weights and 8-bit activations).
 
 
-| Models                                          | Single Precision Top-1 | W8A8 Top-1 |
-| ----------------------------------------------- | :--------------------: | :--------: |
-| [ResNet18](https://arxiv.org/abs/1512.03385)    |          71.47         |   71.43    |
-| [ResNet50](https://arxiv.org/abs/1512.03385)    |          77.72         |   77.67    |
-| [InceptionV3](https://arxiv.org/abs/1512.00567) |          78.88         |   78.72    |
-| [MobileNetV2](https://arxiv.org/abs/1801.04381) |          73.03         |   72.91    |
-| [ShuffleNet](https://arxiv.org/abs/1707.01083)  |          65.07         |   64.94    |
-| [SqueezeNext](https://arxiv.org/abs/1803.10615) |          69.38         |   69.17    |
+| Models                                          | Single Precision Top-1 | W8A8 Top-1 | W8A8 Top-1 | Single Precision Top-1 |   
+| ----------------------------------------------- | :--------------------: | :--------: | :--------: | :--------------------: |
+| [ResNet18](https://arxiv.org/abs/1512.03385)    |          71.47         |   71.43    |  71.614    |     71.97              |
+| [ResNet50](https://arxiv.org/abs/1512.03385)    |          77.72         |   77.67    |  77.542    |     77.72              |
+| [InceptionV3](https://arxiv.org/abs/1512.00567) |          78.88         |   78.72    |            |                        |
+| [MobileNetV2](https://arxiv.org/abs/1801.04381) |          73.03         |   72.91    |            |     73.03              |
+| [ShuffleNet](https://arxiv.org/abs/1707.01083)  |          65.07         |   64.94    |  64.478    |     65.07              |
+| [SqueezeNext](https://arxiv.org/abs/1803.10615) |          69.38         |   69.17    |  68.768    |     69.38              |
 
 ## Evaluate
 
