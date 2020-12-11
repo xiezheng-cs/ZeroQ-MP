@@ -65,7 +65,8 @@ def getDistilData(teacher_model,
 	num_batch: the number of batch of generated distilled data
 	for_inception: whether the data is for Inception because inception has input size 299 rather than 224
 	"""
-
+    # TODO: cache the distilled data for multiple tests.
+    # 直接给BN挂hook实现更简单一点
     # initialize distilled data with random noise according to the dataset
     dataloader = getRandomData(dataset=dataset,
                                batch_size=batch_size,
@@ -141,8 +142,8 @@ def getDistilData(teacher_model,
             tmp_std = torch.sqrt(
                 torch.var(gaussian_data.view(gaussian_data.size(0), 3, -1),
                           dim=2) + eps)
-            mean_loss += own_loss(input_mean, tmp_mean)
-            std_loss += own_loss(input_std, tmp_std)
+            mean_loss += own_loss(input_mean, tmp_mean) # mean = 0
+            std_loss += own_loss(input_std, tmp_std) # std = 1
             total_loss = mean_loss + std_loss
 
             # update the distilled data

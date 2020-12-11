@@ -1,4 +1,4 @@
-#*
+# *
 # @file Different utility functions
 # Copyright (c) Yaohui Cai, Zhewei Yao, Zhen Dong, Amir Gholami
 # All rights reserved.
@@ -16,7 +16,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ZeroQ repository.  If not, see <http://www.gnu.org/licenses/>.
-#*
+# *
 
 import torch
 import torch.nn as nn
@@ -26,39 +26,48 @@ from pytorchcv.models.common import ConvBlock
 from pytorchcv.models.shufflenetv2 import ShuffleUnit, ShuffleInitBlock
 
 
-def quantize_model(model):
-    """
-    Recursively quantize a pretrained single-precision model to int8 quantized model
-    model: pretrained single-precision model
-    """
+class QuanModel():
+    def __init__(self):
+        # collect convq, linearq and actq for sensitivity analysis.
+        self.quantized_layers = []
+ 
+    def quantize_model(self, model):
+        """
+        Recursively quantize a pretrained single-precision model to int8 quantized model
+        model: pretrained single-precision model
+        """
 
-    # quantize convolutional and linear layers to 8-bit
-    if type(model) == nn.Conv2d:
-        quant_mod = Quant_Conv2d(weight_bit=8)
-        quant_mod.set_param(model)
-        return quant_mod
-    elif type(model) == nn.Linear:
-        quant_mod = Quant_Linear(weight_bit=8)
-        quant_mod.set_param(model)
-        return quant_mod
+        # quantize convolutional and linear layers to 8-bit
+        if type(model) == nn.Conv2d:
+            quant_mod = Quant_Conv2d(weight_bit=8)
+            quant_mod.set_param(model)
+            self.quantized_layers.append(quant_mod)
+            return quant_mod
+        elif type(model) == nn.Linear:
+            quant_mod = Quant_Linear(weight_bit=8)
+            quant_mod.set_param(model)
+            self.quantized_layers.append(quant_mod)
+            return quant_mod
 
-    # quantize all the activation to 8-bit
-    elif type(model) == nn.ReLU or type(model) == nn.ReLU6:
-        return nn.Sequential(*[model, QuantAct(activation_bit=8)])
+        # quantize all the activation to 8-bit
+        elif type(model) == nn.ReLU or type(model) == nn.ReLU6:
+            quant_mod = QuantAct(activation_bit=8)
+            self.quantized_layers.append(quant_mod)
+            return nn.Sequential(*[model, quant_mod])
 
-    # recursively use the quantized module to replace the single-precision module
-    elif type(model) == nn.Sequential:
-        mods = []
-        for n, m in model.named_children():
-            mods.append(quantize_model(m))
-        return nn.Sequential(*mods)
-    else:
-        q_model = copy.deepcopy(model)
-        for attr in dir(model):
-            mod = getattr(model, attr)
-            if isinstance(mod, nn.Module) and 'norm' not in attr:
-                setattr(q_model, attr, quantize_model(mod))
-        return q_model
+        # recursively use the quantized module to replace the single-precision module
+        elif type(model) == nn.Sequential:
+            mods = []
+            for n, m in model.named_children():
+                mods.append(self.quantize_model(m))
+            return nn.Sequential(*mods)
+        else:
+            q_model = copy.deepcopy(model)
+            for attr in dir(model):
+                mod = getattr(model, attr)
+                if isinstance(mod, nn.Module) and 'norm' not in attr:
+                    setattr(q_model, attr, self.quantize_model(mod))
+            return q_model
 
 
 def freeze_model(model):

@@ -1,4 +1,4 @@
-#*
+# *
 # @file Different utility functions
 # Copyright (c) Yaohui Cai, Zhewei Yao, Zhen Dong, Amir Gholami
 # All rights reserved.
@@ -16,7 +16,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ZeroQ repository.  If not, see <http://www.gnu.org/licenses/>.
-#*
+# *
 
 import argparse
 import torch
@@ -25,6 +25,7 @@ import torch.nn as nn
 from pytorchcv.model_provider import get_model as ptcv_get_model
 from utils import *
 from distill_data import *
+from quantization_utils import quant_modules 
 
 
 # model settings
@@ -36,6 +37,10 @@ def arg_parse():
                         default='imagenet',
                         choices=['imagenet', 'cifar10'],
                         help='type of dataset')
+    parser.add_argument('--data-source', type=str, default='distill',
+                        choices=['distill', 'random', 'train'],
+                        help='whether to use distill data, this will take some minutes')
+
     parser.add_argument('--model',
                         type=str,
                         default='resnet18',
@@ -72,22 +77,39 @@ if __name__ == '__main__':
                               path='./data/imagenet/',
                               for_inception=args.model.startswith('inception'))
     # Generate distilled data
-    dataloader = getDistilData(
-        model.cuda(),
-        args.dataset,
-        batch_size=args.batch_size,
-        for_inception=args.model.startswith('inception'))
-    print('****** Data loaded ******')
-
+    begin = time.time()
+    if args.data_source == 'distill':
+        print('distill data ...')
+        dataloader = getDistilData(
+            model.cuda(),
+            args.dataset,
+            batch_size=args.batch_size,
+            for_inception=args.model.startswith('inception'))
+    elif args.data_source == 'random':
+        print('Get random data ...')
+        dataloader = getRandomData(dataset=args.dataset,
+                                   batch_size=args.batch_size,
+                                   for_inception=args.model.startswith('inception'))
+    elif args.data_source == 'train':
+        print('Get train data')
+        dataloader = getTrainData(args.dataset,
+                                  batch_size=args.batch_size,
+                                  path='./data/imagenet/',
+                                  for_inception=args.model.startswith('inception'))
+    print('****** Data loaded ****** cost {:.2f}s'.format(time.time() - begin))
+    begin = time.time()
     # Quantize single-precision model to 8-bit model
-    quantized_model = quantize_model(model)
+    quan_tool = QuanModel()
+    quantized_model = quan_tool.quantize_model(model)
     # Freeze BatchNorm statistics
     quantized_model.eval()
     quantized_model = quantized_model.cuda()
-
+    print(quantized_model)
+    # TODO: Sensitivity analysis.
+    sensitivity_anylysis(quan_tool.quantized_layers, dataloader, quantized_model)
     # Update activation range according to distilled data
     update(quantized_model, dataloader)
-    print('****** Zero Shot Quantization Finished ******')
+    print('****** Zero Shot Quantization Finished ****** cost {:.2f}s'.format(time.time() - begin))
 
     # Freeze activation range during test
     freeze_model(quantized_model)
@@ -95,3 +117,20 @@ if __name__ == '__main__':
 
     # Test the final quantized model
     test(quantized_model, test_loader)
+
+def sensitivity_anylysis(layers, dataloader, quantized_model):
+    # 1. get the ground truth output
+    for l in layers:
+        l.full_precision_flag = True
+    gt_output = None
+    with torch.no_grad():
+        for batch_idx, inputs in enumerate(dataloader):
+            if isinstance(inputs, list):
+                inputs = inputs[0]
+            inputs = inputs.cuda()
+            gt_output = quantized_model(inputs)
+            import ipdb; ipdb.set_trace()
+            print('only calibrate the quantization parameters on one batch')
+            break
+    # 2. change bitwidth layer by layer and get the sensitivity
+   

@@ -110,3 +110,25 @@ def getTestData(dataset='imagenet',
                                  shuffle=False,
                                  num_workers=32)
         return test_loader
+
+def getTrainData(dataset='imagenet',
+                batch_size=1024,
+                path='data/imagenet',
+                for_inception=False):
+    if dataset == 'imagenet':
+        input_size = 299 if for_inception else 224
+        normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                         std=[0.229, 0.224, 0.225])
+        train_dataset = datasets.ImageFolder(
+            path + '/train',
+            transforms.Compose([
+                transforms.Resize(int(input_size / 0.875)),
+                transforms.CenterCrop(input_size),
+                transforms.ToTensor(),
+                normalize,
+            ]))
+        train_loader = DataLoader(train_dataset,
+                                 batch_size=batch_size,
+                                 shuffle=False,
+                                 num_workers=32)
+        return train_loader

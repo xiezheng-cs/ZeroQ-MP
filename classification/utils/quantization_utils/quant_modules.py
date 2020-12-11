@@ -43,7 +43,7 @@ class QuantAct(Module):
         running_stat: determines whether the activation range is updated or froze
         """
         super(QuantAct, self).__init__()
-        self.activation_bit = activation_bit
+        self.bit = activation_bit
         self.momentum = 0.99
         self.full_precision_flag = full_precision_flag
         self.running_stat = running_stat
@@ -53,7 +53,7 @@ class QuantAct(Module):
 
     def __repr__(self):
         return "{0}(activation_bit={1}, full_precision_flag={2}, running_stat={3}, Act_min: {4:.2f}, Act_max: {5:.2f})".format(
-            self.__class__.__name__, self.activation_bit,
+            self.__class__.__name__, self.bit,
             self.full_precision_flag, self.running_stat, self.x_min.item(),
             self.x_max.item())
 
@@ -75,7 +75,7 @@ class QuantAct(Module):
             self.x_max += -self.x_max + max(self.x_max, x_max)
 
         if not self.full_precision_flag:
-            quant_act = self.act_function(x, self.activation_bit, self.x_min,
+            quant_act = self.act_function(x, self.bit, self.x_min,
                                           self.x_max)
             return quant_act
         else:
@@ -94,13 +94,13 @@ class Quant_Linear(Module):
         """
         super(Quant_Linear, self).__init__()
         self.full_precision_flag = full_precision_flag
-        self.weight_bit = weight_bit
+        self.bit = weight_bit
         self.weight_function = AsymmetricQuantFunction.apply
 
     def __repr__(self):
         s = super(Quant_Linear, self).__repr__()
         s = "(" + s + " weight_bit={}, full_precision_flag={})".format(
-            self.weight_bit, self.full_precision_flag)
+            self.bit, self.full_precision_flag)
         return s
 
     def set_param(self, linear):
@@ -121,7 +121,7 @@ class Quant_Linear(Module):
         w_min = x_transform.min(dim=1).values
         w_max = x_transform.max(dim=1).values
         if not self.full_precision_flag:
-            w = self.weight_function(self.weight, self.weight_bit, w_min,
+            w = self.weight_function(self.weight, self.bit, w_min,
                                      w_max)
         else:
             w = self.weight
@@ -135,13 +135,13 @@ class Quant_Conv2d(Module):
     def __init__(self, weight_bit, full_precision_flag=False):
         super(Quant_Conv2d, self).__init__()
         self.full_precision_flag = full_precision_flag
-        self.weight_bit = weight_bit
+        self.bit = weight_bit
         self.weight_function = AsymmetricQuantFunction.apply
 
     def __repr__(self):
         s = super(Quant_Conv2d, self).__repr__()
         s = "(" + s + " weight_bit={}, full_precision_flag={})".format(
-            self.weight_bit, self.full_precision_flag)
+            self.bit, self.full_precision_flag)
         return s
 
     def set_param(self, conv):
@@ -167,7 +167,7 @@ class Quant_Conv2d(Module):
         w_min = x_transform.min(dim=1).values
         w_max = x_transform.max(dim=1).values
         if not self.full_precision_flag:
-            w = self.weight_function(self.weight, self.weight_bit, w_min,
+            w = self.weight_function(self.weight, self.bit, w_min,
                                      w_max)
         else:
             w = self.weight

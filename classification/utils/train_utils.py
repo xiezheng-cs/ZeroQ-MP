@@ -60,4 +60,6 @@ def update(quantized_model, distilD):
                 inputs = inputs[0]
             inputs = inputs.cuda()
             outputs = quantized_model(inputs)
+            print('only calibrate the quantization parameters on one batch')
+            break
     return quantized_model
