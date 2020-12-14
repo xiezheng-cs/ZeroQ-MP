@@ -1,6 +1,9 @@
 # ZeroQ: A Novel Zero Shot Quantization Framework
 ![Block](imgs/resnet18_sensitivity.png)
 
+## New Feature
+- MixPrecision (MP).
+
 
 
 ## Introduction

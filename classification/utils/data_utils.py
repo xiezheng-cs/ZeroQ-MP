@@ -129,6 +129,6 @@ def getTrainData(dataset='imagenet',
             ]))
         train_loader = DataLoader(train_dataset,
                                  batch_size=batch_size,
-                                 shuffle=False,
+                                 shuffle=True,
                                  num_workers=32)
         return train_loader

@@ -27,32 +27,36 @@ from pytorchcv.models.shufflenetv2 import ShuffleUnit, ShuffleInitBlock
 
 
 class QuanModel():
-    def __init__(self):
+    def __init__(self, percentile):
         # collect convq, linearq and actq for sensitivity analysis.
-        self.quantized_layers = []
+        self.quan_act_layers = []
+        self.quan_weight_layers = []
+        self.weight_num = [] # TODO
+        self.percentile = percentile
  
     def quantize_model(self, model):
         """
         Recursively quantize a pretrained single-precision model to int8 quantized model
         model: pretrained single-precision model
         """
-
         # quantize convolutional and linear layers to 8-bit
         if type(model) == nn.Conv2d:
-            quant_mod = Quant_Conv2d(weight_bit=8)
+            quant_mod = Quant_Conv2d(weight_bit=8, percentile=None)
             quant_mod.set_param(model)
-            self.quantized_layers.append(quant_mod)
+            self.quan_weight_layers.append(quant_mod)
+            self.weight_num.append(quant_mod.weight.numel())
             return quant_mod
         elif type(model) == nn.Linear:
-            quant_mod = Quant_Linear(weight_bit=8)
+            quant_mod = Quant_Linear(weight_bit=8, percentile=None)
             quant_mod.set_param(model)
-            self.quantized_layers.append(quant_mod)
+            self.quan_weight_layers.append(quant_mod)
+            self.weight_num.append(quant_mod.weight.numel())
             return quant_mod
 
         # quantize all the activation to 8-bit
         elif type(model) == nn.ReLU or type(model) == nn.ReLU6:
-            quant_mod = QuantAct(activation_bit=8)
-            self.quantized_layers.append(quant_mod)
+            quant_mod = QuantAct(activation_bit=8, percentile=self.percentile)
+            self.quan_act_layers.append(quant_mod)
             return nn.Sequential(*[model, quant_mod])
 
         # recursively use the quantized module to replace the single-precision module
