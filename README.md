@@ -2,9 +2,8 @@
 ![Block](imgs/resnet18_sensitivity.png)
 
 ## New Feature
-- MixPrecision (MP).
+- [x] MixPrecision (MP).
 
-=======
 | ZeroQ                  | ResNet18-W6A6 | ResNet50-W6A6 | ResNet50-W4A8 | MobileNetV2-W6a6 | MobileNetV2-W4a8 | ShuffleNet-W6A6 | ShuffleNet-W4A8 |
 |------------------------|---------------|---------------|---------------|------------------|------------------|-----------------|-----------------|
 | size(MB)               | 8.35          | 18.27         | 12.17         | 2.50             | 1.67             | 1.11            | 0.74            |
@@ -16,6 +15,12 @@
 | acc(train)per0.99999   | 71.16         | 76.97         | 73.62         | 72.18            | 59.12            | 60.64           | 52.72           |
 | acc(distill)per0.99999 | 71.33         | 76.27         | 72.97         | 72.20            | 53.48            | 59.58           | 50.97           |
 | acc(distill)per0.9999  | 70.96         | 76.27         | 72.48         | 72.20            | 53.19            | 61.59           | 50.59           |
+
+
+<img src="imgs/resnet50_sen.png" width="50%" height="50%"><img src="imgs/resnet50_Pareto.png" width="50%" height="50%">
+<img src="imgs/resnet50_MP4A8_bit.png" width="50%" height="50%"><img src="imgs/resnet50_MP6A6_bit.png" width="50%" height="50%">
+
+
 
 ## Introduction
 
