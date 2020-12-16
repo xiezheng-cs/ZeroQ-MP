@@ -1,5 +1,7 @@
 # ZeroQ: A Novel Zero Shot Quantization Framework
-![Block](imgs/resnet18_sensitivity.png)
+
+<img src="imgs/resnet50_sen.png" width="50%" height="50%"><img src="imgs/resnet50_Pareto.png" width="50%" height="50%">
+<img src="imgs/resnet50_MP4A8_bit.png" width="50%" height="50%"><img src="imgs/resnet50_MP6A6_bit.png" width="50%" height="50%">
 
 ## New Feature
 - [x] MixPrecision (MP).
@@ -17,9 +19,15 @@
 | acc(distill)per0.9999  | 70.96         | 76.27         | 72.48         | 72.20            | 53.19            | 61.59           | 50.59           |
 
 
-<img src="imgs/resnet50_sen.png" width="50%" height="50%"><img src="imgs/resnet50_Pareto.png" width="50%" height="50%">
-<img src="imgs/resnet50_MP4A8_bit.png" width="50%" height="50%"><img src="imgs/resnet50_MP6A6_bit.png" width="50%" height="50%">
 
+| model            | fp32  | 8/8-random | 8/8-distill | 8/8-train |
+|------------------|-------|------------|-------------|-----------|
+| resnet18         | 71.47 | 60.14      | 71.70       | 71.79     |
+| resnet50         | 77.72 | 74.17      | 77.57       | 77.61     |
+| inceptionv3      | 78.88 | 72.10      | 78.72       | 78.74     |
+| mobilenetv2_w1   | 73.03 | 63.05      | 72.91       | 72.93     |
+| shufflenet_g1_w1 | 65.07 | 9.83       | 64.94       | 64.69     |
+| sqnxt23_w2       | 69.38 | 40.90      | 69.17       | 69.34     |
 
 
 ## Introduction
