@@ -28,8 +28,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from pytorchcv.model_provider import get_model as ptcv_get_model
 
-from distill_data import *
-from utils import *
+from classification.utils import *
+from classification.distill_data import *
 
 
 # model settings
@@ -41,6 +41,7 @@ def arg_parse():
                         default='imagenet',
                         choices=['imagenet', 'cifar10'],
                         help='type of dataset')
+
     parser.add_argument('--data-source', type=str, default='distill',
                         choices=['distill', 'random', 'train'],
                         help='whether to use distill data, this will take some minutes')
@@ -67,9 +68,11 @@ def arg_parse():
     args = parser.parse_args()
     return args
 
+
 def kl_divergence(P, Q):
     return (P * (P / Q).log()).sum() / P.size(0) # batch size
     # F.kl_div(Q.log(), P, None, None, 'sum')
+
 def symmetric_kl(P, Q):
     return (kl_divergence(P, Q) + kl_divergence(Q, P)) / 2
 
@@ -145,8 +148,10 @@ def get_FrontierFrontier(sen_result, layer_num, weight_num, constraint=1000):
             n.middle = Node(n.cost + cost[1] * weight_num[layer_id] / 8 / 1024 / 1024, n.profit + prifits[1][layer_id], bit=bits[1], parent=n, position='middle')
             n.right = Node(n.cost + cost[2] * weight_num[layer_id] / 8 / 1024 / 1024, n.profit + prifits[2][layer_id], bit=bits[2], parent=n, position='right')
             next_list.extend([n.left, n.middle, n.right])
+
         # 2. sort
         next_list.sort(key=lambda x:x.cost, reverse=False)
+
         # 3. prune
         pruned_list = []
         for node in next_list:
@@ -157,6 +162,7 @@ def get_FrontierFrontier(sen_result, layer_num, weight_num, constraint=1000):
         # 4. loop
         current_list = pruned_list
     return current_list
+
 
 def sensitivity_anylysis(quan_act, quan_weight, dataloader, quantized_model, args, weight_num):
     # 1. get the ground truth output
@@ -174,6 +180,7 @@ def sensitivity_anylysis(quan_act, quan_weight, dataloader, quantized_model, arg
             gt_output = quantized_model(inputs)
             gt_output = F.softmax(gt_output, dim=1)
             break
+
     # 2. change bitwidth layer by layer and get the sensitivity
     sen_result = [[0 for i in range(len(quan_weight))] for j in range(3)]
     for i in range(len(quan_weight)):
@@ -187,6 +194,7 @@ def sensitivity_anylysis(quan_act, quan_weight, dataloader, quantized_model, arg
             sen_result[j][i] = kl_div.item()
             quan_weight[i].full_precision_flag = True
     plot_sen(sen_result, args.model)
+
     # 3. Pareto Frontier
     ## random
     sizes = []
@@ -207,6 +215,7 @@ def sensitivity_anylysis(quan_act, quan_weight, dataloader, quantized_model, arg
         )
     )
     begin = time.time()
+
     ## DP
     node_list = get_FrontierFrontier(sen_result, len(quan_weight), weight_num)
     print('dp cost: {:.2f}s'.format(time.time() - begin))
@@ -219,6 +228,7 @@ def sensitivity_anylysis(quan_act, quan_weight, dataloader, quantized_model, arg
     fig.write_image('workspace/images/{}_Pareto.pdf'.format(args.model))
     return node_list
 
+
 def plot_bits(bits, name):
     trace = go.Scatter(y=bits, mode='markers+lines')
     layout = go.Layout(
@@ -229,7 +239,8 @@ def plot_bits(bits, name):
     fig = go.Figure(data, layout)
     fig.write_image('workspace/images/{}_bit.png'.format(name))
     fig.write_image('workspace/images/{}_bit.pdf'.format(name))
-    
+
+
 if __name__ == '__main__':
     args = arg_parse()
     torch.backends.cudnn.deterministic = False
@@ -244,6 +255,7 @@ if __name__ == '__main__':
                               batch_size=args.test_batch_size,
                               path='./data/data.imagenet/',
                               for_inception=args.model.startswith('inception'))
+
     # Generate distilled data
     begin = time.time()
     if args.data_source == 'distill':
@@ -266,31 +278,41 @@ if __name__ == '__main__':
                                   for_inception=args.model.startswith('inception'))
     print('****** Data loaded ****** cost {:.2f}s'.format(time.time() - begin))
     begin = time.time()
+
     # Quantize single-precision model to 8-bit model
     quan_tool = QuanModel(percentile=args.percentile)
     quantized_model = quan_tool.quantize_model(model)
+
     # Freeze BatchNorm statistics
     quantized_model.eval()
     quantized_model = quantized_model.cuda()
-    node_list = sensitivity_anylysis(quan_tool.quan_act_layers, quan_tool.quan_weight_layers, dataloader, quantized_model, args, quan_tool.weight_num)
+
+    # sensitivity anylysis
+    node_list = sensitivity_anylysis(quan_tool.quan_act_layers, quan_tool.quan_weight_layers,
+                                     dataloader, quantized_model, args, quan_tool.weight_num)
     config = {
         'resnet18': [(6, 6)], # representing MP6 for weights and 6bit for activation
         'resnet50': [(6, 6), (4, 8)],
         'mobilenetv2_w1': [(6, 6), (4, 8)],
         'shufflenet_g1_w1': [(6, 6), (4, 8)]
     }
+
     for (bit_w, bit_a) in config[args.model]:
         for l in quan_tool.quan_act_layers:
             l.full_precision_flag = False
-            l.bit = bit_a
+            l.bit = bit_a      # set activation bit
+
+        # target quantized model size
         constraint = sum(quan_tool.weight_num) * bit_w / 8 / 1024 / 1024
         meet_list = []
+
         for node in node_list:
             if node.cost <= constraint:
                 meet_list.append(node)
-        bits = []
+
+        bits = []    # store weight mixed bit
         node = meet_list[-1]
-        while(node is not None):
+        while node is not None:
             bits.append(node.bit)
             node = node.parent
         bits.reverse()
@@ -298,7 +320,8 @@ if __name__ == '__main__':
         plot_bits(bits, '{}_MP{}A{}'.format(args.model, bit_w, bit_a))
         for i, l in enumerate(quan_tool.quan_weight_layers):
             l.full_precision_flag = False
-            l.bit = bits[i]
+            l.bit = bits[i]      # set weight bit
+
         # Update activation range according to distilled data
         unfreeze_model(quantized_model)
         update(quantized_model, dataloader)
